@@ -1,51 +1,90 @@
-# NixOS
+# NixOS Install
 
-lsblk
-#sda 57.8G disk 
-#├─sda1 57.8G part /media/alex/WIN11_2025 
-#└─sda2 1M part /media/alex/UEFI_NTFS
-sudo umount /dev/sda1
-sudo umount /dev/sda2
+- NixOS docs: https://nixos.org/manual/nixos/stable/
+- NixOS video: https://youtu.be/61wGzIv12Ds
 
+- Hyprland support docs: https://wiki.hypr.land/Nix/Hyprland-on-NixOS/
+- Hyprland support video: https://youtu.be/61wGzIv12Ds
+
+
+## Step 1 - Install on flash drive
+
+```sh
 sudo dd if=~/Downloads/...nixos.iso of=/dev/sda bs=4M status=progress oflag=sync
+
 sync
 
-# restart
-# boot in to usb stick
+shutdown now
+```
 
+## Step 2 - boot in to usb stick
+
+```
 nmtui # connect to wifi
-ping nixos.org # check connection
-sudo -i
-parted /dev/nvme0n1 -- mklabel gpt
-parted /dev/nvme0n1 -- mkpart ESP fat32 1MiB 512MiB
-parted /dev/nvme0n1 -- set 1 esp on
-parted /dev/nvme0n1 -- mkpart primary ext4 512MiB 100%
+ping google.com # test
+```
+
+```sh
 lsblk
-# nvme0n1 259:0 0 953.9G 0 disk
-# -nvme0n1p2 259:1 953.4G 0 part
-# -nvme0n1p1 259:2 511M 0 part
+# my disk is: nvme0n1 259:0 0 953.9G 0 disk
+cfdisk /dev/nvme0n1
+# chose gpt
 
-mkfs.fat -F 32 /dev/nvme0n1p1
-mkfs.ext4 /dev/nvme0n1p2
+new: 1G
+type: EFI
 
-mount /dev/nvme0n1p2 /mnt
-mkdir -p /mnt/boot
-mount /dev/nvme0n1p1 /mnt/boot
+new: 4G
+type: swap
 
+new: capture all memory by typing Enter 2x. my size is 948.9G
+type: Linux filesystem
+write: yes
+
+quit
+
+mkfs.ext4 -L nixos /dev/nvme0n1p3
+mkswap -L swap /dev/nvme0n1p2
+mkfs.fat -F 32 -n boot /dev/nvme0n1p1
+
+mount /dev/nvme0n1p3 /mnt
+mount --mkdir /dev/nvme0n1p1 /mnt/boot
+swapon /dev/nvme0n1p2
+
+# Mount EFI vars
+mount -t efivarfs efivarfs /sys/firmware/efi/efivars/
+```
+```sh
+lsblk
+```
+```sh
+nvme0n1 953.9G      disk
+- nvme0n1p1 1G      part  /mnt/boot
+- nvme0n1p2 4G      part  [SWAP]
+- nvme0n1p3 948.9G  part  /mnt
+```
+```sh
 nixos-generate-config --root /mnt
-
+```
+```sh
 vim /mnt/etc/nixos/configuration.nix
+```
+```
 boot.loader.systemd-boot.enable = true;
 boot.loader.efi.canTouchEfiVariables = true;
-time.timeZone = "Europe/Netherlands";
 networking.networkmanager.enable = true;
 
-users.users.alice = { # REPLACE alice with your user e.g.: alex <--- !!!
-  isNormalUser = true;
-  extraGroups = [ "wheel" ];
-  packages = with pkgs; [
-  ];
-};
+networking.hostName = "nixos-btw"
 
-nixos-install
+time.timeZone = "Europe/Netherlands";
+
+# For Hyperland add these configs:
+services.xserver.enable = true;
+services.displayManager.sddm.enable = true;
+programs.hyprland.enable = true;
+```
+```
 reboot
+```
+# Step 3
+
+Boot into SSD and enjoy
