@@ -2,11 +2,22 @@
 
 Configuration files for my system and applications
 
+## Symlink
+
+move files/dirs in ./config to a backup dir:
+
+mv .config/hypr .config/hypr.backup
 
 symlink path ./.config:
 
 ```
-ln -s ~/dotfiles/.config ~/.config
+Quick:
+ln -s ~/dotfiles/.config ~/.config/.
+
+# Safer:
+ln -s ~/dotfiles/.config/hypr ~/.config/.
+ln -s ~/dotfiles/.config/waybar ~/.config/.
+ln -s ~/dotfiles/.config/rofi ~/.config/.
 ```
 
 previous command will link all these files:
